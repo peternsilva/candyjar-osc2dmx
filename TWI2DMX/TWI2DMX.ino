@@ -1,11 +1,11 @@
 /**
  *  Responds to i2c control data, but also has all the lighting patterns written here
  */
-#include "rgbdefs.h"
-#include "project_defs.h"
-#include "DmxMaster.h"
 #include <Wire.h>
 #include <Math.h>
+#include "DmxMaster.h"
+#include "rgbdefs.h"
+#include "project_defs.h"
 
 #define DEBUG 0
 #define NUM_SCENES 13
