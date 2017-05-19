@@ -3,8 +3,7 @@
  */
 #include "rgbdefs.h"
 #include "project_defs.h"
-
-#include <DmxMaster.h>
+#include "DmxMaster.h"
 #include <Wire.h>
 #include <Math.h>
 
