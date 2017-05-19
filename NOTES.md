@@ -62,5 +62,5 @@
   - 134-255:  Slow - Fast (CCW)
 
 
-##Summary:
+## Swarm FX Summary:
   - Channels I mostly care about: 1-10, 12, 14, 16, 18

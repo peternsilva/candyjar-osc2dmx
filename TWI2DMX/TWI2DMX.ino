@@ -1025,6 +1025,39 @@ void setFixtureRGB_ADJH2O(int dmxStart, int r, int g, int b) {
  *  @param  g                   Amount of green
  *  @param  b                   Amount of blue
  */
+void setFixtureRGB_SWARMFX(int dmxStart, int r, int g, int b) {
+    int brightness = ( r + g + b ) / 3;     // Average the color channels for brightness
+    int colorMode = 52;                     // default red;
+
+    // Control washes
+    if (r>0 && g>0 && b>0) {
+        // I have RGBUV to work with, cannot combine them in anyway, they are mutually exclusive
+
+        // If Reddish set to Red
+        if (r>75 && r-g>50 && r-b>50) colorMode = 77;
+        // If Greenish set to Green
+        if (g>75 && g-r>50 && g-b>50) colorMode = 128;
+        // If Bluish set to Blue
+        if (b>75 && b-r>50 && b-g>50) colorMode = 179;
+        // If Bluish-Purple set to UV
+        if (b>75 && b-r>50 && b-g>50 && r>g) colorMode = 230;
+    }
+
+    writeDMX(dmxStart, brightness);
+    writeDMX(dmxStart+1, h2oSpeed);
+
+    // Write out Wash DMX data [ch3-10]
+    for (int i=2; i<=9; i++) {
+      writeDMX(dmxStart+i, colorMode);
+    }
+}
+
+/**
+ *  @param  dmxStart     DMX starting address for the fixture
+ *  @param  r                   Amount of red
+ *  @param  g                   Amount of green
+ *  @param  b                   Amount of blue
+ */
 void setFixtureRGB_RGBStrip(int dmxStart, int r, int g, int b) {
     writeDMX(dmxStart, r);
     writeDMX(dmxStart+1, g);
