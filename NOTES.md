@@ -4,8 +4,8 @@
 #Swarm 18ch DMX Mode
 
 *ch1: Auto Program Select*
-  Used to enable each of 4 effects: Wash, Laser, Derby, Strobe
-  Maybe put this on it's own slider or buttons in TouchOSC. Could also toggle them with individual settings.
+  - Used to enable each of 4 effects: Wash, Laser, Derby, Strobe
+  - Maybe put this on it's own slider or buttons in TouchOSC. Could also toggle them with individual settings.
 
 *ch2: Auto Program Speed*
   0-200:    Slow - Fast
