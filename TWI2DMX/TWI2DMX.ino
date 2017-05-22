@@ -8,13 +8,14 @@
 #include "project_defs.h"
 
 #define DEBUG 0
-#define NUM_SCENES 13
+#define NUM_SCENES 14
 
 int systemOff = 0;
 boolean gotoLoop = false;
 
 int areaParams[NUM_LIGHTING_AREAS+1][NUM_AREA_PARAMS];   // Holds values of params for different lighting areas
 int selectedArea = AREA_GLOBAL;
+int selectedAreaOld = AREA_GLOBAL;
 int selectedScene = 1;
 int rotateScenes = 0;
 int blankOnSceneChange = 0;
@@ -22,6 +23,15 @@ int blankOnSceneChange = 0;
 float globalSpeed = 1.0; //[0.0 - 2.0]
 int h2oSpeed = 10;
 int h2oAddress = 5;
+int swarm_wash = 255;
+int swarm_derby = 255;
+int swarm_lasers = 255;
+int swarm_strobe = 255;
+int swarm_sound_reactive = 0;
+uint16_t cycleCount = 0;
+uint8_t swarm_wash_color = 52;
+uint8_t swarm_derby_color = 10;
+uint8_t swarm_smd_strobe = 16;
 
 
 // Control "pickup" takeover mode, so we don't have sudden jumps when interface values don't match system values for a control
@@ -34,6 +44,8 @@ int pickupWindow = 2;
  *  Initial setup of the program prior to loop
  */
 void setup() {
+    randomSeed(analogRead(0));
+
     /*
     The most common pin for DMX output is pin 3, which DmxMaster
     uses by default. If you need to change that, do it here.
@@ -151,6 +163,11 @@ void loop() {
             fx_noisy(100,60,random(10)*3,random(10)*3,random(10)*3);
             break;
 
+        case 14:
+            // Solid color
+            fx_solidColor();
+            break;
+
         default:
             selectedScene = 1;
             break;
@@ -238,6 +255,37 @@ void requestWireData() {
                 }
                 if (DEBUG) { Serial.print(", systemOff="); Serial.println(val); }
                 break;
+
+            case 9:
+                // Swarm Mode Wash Toggle
+                if( swarm_wash != val ) swarm_wash = val;
+                if (DEBUG) { Serial.print(", swarm_wash="); Serial.print(val); }
+                break;
+
+            case 10:
+                // Swarm Mode Derby Toggle
+                if( swarm_derby != val ) swarm_derby = val;
+                if (DEBUG) { Serial.print(", swarm_derby="); Serial.print(val); }
+                break;
+
+            case 11:
+                // Swarm Mode Lasers Toggle
+                if( swarm_lasers != val ) swarm_lasers = val;
+                if (DEBUG) { Serial.print(", swarm_lasers="); Serial.print(val); }
+                break;
+
+            case 12:
+                // Swarm Mode Strobe Toggle
+                if( swarm_strobe != val ) swarm_strobe = val;
+                if (DEBUG) { Serial.print(", swarm_strobe="); Serial.print(val); }
+                break;
+
+            case 13:
+                // Swarm Sound Reactive Toggle
+                if( swarm_sound_reactive != val ) swarm_sound_reactive = val;
+                if (DEBUG) { Serial.print(", swarm_sound_reactive="); Serial.print(val); }
+                break;
+
 
         }
 
@@ -867,6 +915,13 @@ void fx_soundReactive(int cycles) {
 
 }
 
+void fx_solidColor() {
+  for(int i=0; i<NUM_FIXTURES; i++) {
+    setFixtureRGB(fixtures[i][0], fixtures[i][1], fixtures[i][2], 255, 0, 0); // Red
+    if ( gotoLoop ) return;
+  }
+}
+
 void superBasicDiag() {
     //fixture 1
 
@@ -898,6 +953,9 @@ int tmpBrightness=255;
 float fAreaHue, fAreaSaturation, fAreaBrightness;
 void setFixtureRGB(int fixtureArea, int fixtureType, int dmxStart, int r, int g, int b  ) {
 
+    // Counter that increases with every call to here
+    cycleCount++;
+
     // Convert RGB -> HSV
     colorRGB.R = r; colorRGB.G = g; colorRGB.B = b;
     colorHSV = RGB_to_HSV(colorRGB);
@@ -928,24 +986,48 @@ void setFixtureRGB(int fixtureArea, int fixtureType, int dmxStart, int r, int g,
 
         case FIXTURE_ADJ_H2O_3CH:
             colorRGB = HSV_to_RGB(colorHSV);
-            setFixture_ADJH2O(dmxStart, colorRGB.R, colorRGB.G, colorRGB.B, tmpBrightness, constrain((int)(h2oSpeed*globalSpeed), 80, 110), 0);
-
-            // 100 must be middle, [10-120]
-            // global speed [0-2]
-            // globalSpeed
-
+            setFixture_ADJH2O(dmxStart, colorRGB.R, colorRGB.G, colorRGB.B, tmpBrightness, 0);
             break;
 
         case FIXTURE_RGB_STRIP_3CH:
             colorHSV.V = ((float)tmpBrightness)/255.0;
             colorRGB = HSV_to_RGB(colorHSV);
-            setFixtureRGB_RGBStrip(dmxStart, colorRGB.R*255, colorRGB.G*255, colorRGB.B*255);
+            setFixture_RGBStrip(dmxStart, colorRGB.R*255, colorRGB.G*255, colorRGB.B*255);
             break;
 
         case FIXTURE_MAGICAL_BALL_6CH:
             colorHSV.V = ((float)tmpBrightness)/255.0;
             colorRGB = HSV_to_RGB(colorHSV);
             setFixtureRGB_MagicalBall(dmxStart, colorRGB.R, colorRGB.G, colorRGB.B);
+            break;
+
+        case FIXTURE_SWARM_FX_18CH:
+            colorRGB = HSV_to_RGB(colorHSV);
+            /**
+                int dmxStart, int r, int g, int b, int brightness
+
+                int autoMode,
+                int autoModeParam,
+                int washColor,
+                int washStrobe,
+
+                int derbyColor,
+                int derbyStrobe,
+                int derbySpeed,
+                int smdStrobe,
+
+                int laserColor,
+                int laserStrobe,
+                int motorLED
+
+            **/
+            // Every 500 cycles, re-randomize
+            if (cycleCount%1000>0 && cycleCount%1000<10) {
+              swarm_wash_color = random(1, 255);
+              swarm_derby_color = random(35, 84);
+              swarm_smd_strobe = 10*random(0, 12);
+            }
+            setFixture_SWARMFX(dmxStart, colorRGB.R, colorRGB.G, colorRGB.B, tmpBrightness, 0, 0, swarm_wash_color, 0, swarm_derby_color, 0, 5, swarm_smd_strobe, 255, 0, 5);
             break;
     }
 
@@ -958,126 +1040,15 @@ void setFixtureRGB(int fixtureArea, int fixtureType, int dmxStart, int r, int g,
  *  @param  r                   Amount of red
  *  @param  g                   Amount of green
  *  @param  b                   Amount of blue
- */
-void setFixtureRGB_ADJ38B(int dmxStart, int r, int g, int b){
-    writeDMX(dmxStart, r);
-    writeDMX(dmxStart+1, g);
-    writeDMX(dmxStart+2, b);
-
-    writeDMX(dmxStart+6, 255);   //full brightness
-    writeDMX(dmxStart+5, 0);   //no special sound/macro mode
-}
-
-/**
- *  @param  dmxStart     DMX starting address for the fixture
- *  @param  r                   Amount of red
- *  @param  g                   Amount of green
- *  @param  b                   Amount of blue
- */
-void setFixtureRGB_ADJMegaPar(int dmxStart, int r, int g, int b) {
-    writeDMX(dmxStart, r);
-    writeDMX(dmxStart+1, g);
-    writeDMX(dmxStart+2, b);
-
-    writeDMX(dmxStart+6, 255);   //full brightness
-    writeDMX(dmxStart+5, 0);   //no special sound/macro mode
-}
-
-/**
- *  @param  dmxStart     DMX starting address for the fixture
- *  @param  r                   Amount of red
- *  @param  g                   Amount of green
- *  @param  b                   Amount of blue
- *  @param  colorMode           [11-21] = White/Orange
- *                              [33-43] = Orange/Green
- *                              [55-65] = Green/Blue
- *                              [77-87] = Blue/Yellow
- *                              [99-109] = Yellow/Purple
- *                              [121-127] = Purple/White
- *                              [128-186] = Fade Colors (Fast to Slow)
- *                              [197-255] = Rev Fade Colors (Slow to Fast)
- */
-void setFixtureRGB_ADJH2O(int dmxStart, int r, int g, int b) {
-    int brightness = ( r + g + b ) / 3;     // Average the color channels for brightness
-    int colorMode = 186;                    // fade slow;
-
-    if (r>0 && g>0 && b>0) {
-        //  IF Orange-ish set to White/Orange
-        if (r>150 && g>90 && b<90) colorMode = 21;
-        //  IF Teal-ish set to Green/Blue
-        if (r<120 && g>90 && b>90) colorMode = 65;
-        //  IF Purple-sh set to Yellow/Purple
-        if (r>80 && g<135 && b>130) colorMode = 109;
-        //  IF White-ish set to Purple/White
-        if (r>127 && g>127 && b>127) colorMode = 127;
-
-    }
-
-    writeDMX(dmxStart, brightness);
-    writeDMX(dmxStart+1, h2oSpeed);
-    writeDMX(dmxStart+2, colorMode);
-}
-
-/**
- *  @param  dmxStart     DMX starting address for the fixture
- *  @param  r                   Amount of red
- *  @param  g                   Amount of green
- *  @param  b                   Amount of blue
- */
-void setFixtureRGB_SWARMFX(int dmxStart, int r, int g, int b) {
-    int brightness = ( r + g + b ) / 3;     // Average the color channels for brightness
-    int colorMode = 52;                     // default red;
-
-    // Control washes
-    if (r>0 && g>0 && b>0) {
-        // I have RGBUV to work with, cannot combine them in anyway, they are mutually exclusive
-
-        // If Reddish set to Red
-        if (r>75 && r-g>50 && r-b>50) colorMode = 77;
-        // If Greenish set to Green
-        if (g>75 && g-r>50 && g-b>50) colorMode = 128;
-        // If Bluish set to Blue
-        if (b>75 && b-r>50 && b-g>50) colorMode = 179;
-        // If Bluish-Purple set to UV
-        if (b>75 && b-r>50 && b-g>50 && r>g) colorMode = 230;
-    }
-
-    writeDMX(dmxStart, brightness);
-    writeDMX(dmxStart+1, h2oSpeed);
-
-    // Write out Wash DMX data [ch3-10]
-    for (int i=2; i<=9; i++) {
-      writeDMX(dmxStart+i, colorMode);
-    }
-}
-
-/**
- *  @param  dmxStart     DMX starting address for the fixture
- *  @param  r                   Amount of red
- *  @param  g                   Amount of green
- *  @param  b                   Amount of blue
- */
-void setFixtureRGB_RGBStrip(int dmxStart, int r, int g, int b) {
-    writeDMX(dmxStart, r);
-    writeDMX(dmxStart+1, g);
-    writeDMX(dmxStart+2, b);
-}
-
-/**
- *  @param  dmxStart     DMX starting address for the fixture
- *  @param  r                   Amount of red
- *  @param  g                   Amount of green
- *  @param  b                   Amount of blue
  *
  * THIS FUNCTION IS BROKE OR SOMETHING
  */
 void setFixtureRGB_MagicalBall(int dmxStart, int r, int g, int b) {
-    writeDMX(dmxStart, 0); //no strobe
-
     writeDMX(dmxStart+1, r);
     writeDMX(dmxStart+2, g);
     writeDMX(dmxStart+3, b);
 
+    writeDMX(dmxStart, 0); //no strobe
     writeDMX(dmxStart+4, 192);  // motor
     writeDMX(dmxStart+5, 0);  // keep from any auto mode
 }
@@ -1101,12 +1072,12 @@ void setFixture_ADJ38B(int dmxStart, int r, int g, int b, int colorProgram, int 
     writeDMX(dmxStart, r);
     writeDMX(dmxStart+1, g);
     writeDMX(dmxStart+2, b);
+    writeDMX(dmxStart+6, brightness);
+
     writeDMX(dmxStart+3, colorProgram);
     writeDMX(dmxStart+4, (strobeSpeed > 0) ? map(strobeSpeed, 0, 255, 16, 255) : 0);
     writeDMX(dmxStart+5, (soundActive) ? 230 : 0);
     writeDMX(dmxStart+4, (soundActive) ? soundSensitivity : 0);
-
-    writeDMX(dmxStart+6, brightness);   //full brightness
 }
 
 /**
@@ -1123,12 +1094,24 @@ void setFixture_ADJMegaPar(int dmxStart, int r, int g, int b, int colorProgram, 
     writeDMX(dmxStart, r);
     writeDMX(dmxStart+1, g);
     writeDMX(dmxStart+2, b);
-    writeDMX(dmxStart+4, (strobeSpeed > 0) ? map(strobeSpeed, 0, 255, 16, 255) : 0);
+    writeDMX(dmxStart+6, brightness);
+
     writeDMX(dmxStart+5, colorProgram);
+    writeDMX(dmxStart+4, (strobeSpeed > 0) ? map(strobeSpeed, 0, 255, 16, 255) : 0);
     writeDMX(dmxStart+5, (soundActive) ? 255 : 0);
     writeDMX(dmxStart+4, (soundActive) ? soundSensitivity : 0);
+}
 
-    writeDMX(dmxStart+6, brightness);   //full brightness
+/**
+ *  @param  dmxStart     DMX starting address for the fixture
+ *  @param  r                   Amount of red
+ *  @param  g                   Amount of green
+ *  @param  b                   Amount of blue
+ */
+void setFixture_RGBStrip(int dmxStart, int r, int g, int b) {
+    writeDMX(dmxStart, r);
+    writeDMX(dmxStart+1, g);
+    writeDMX(dmxStart+2, b);
 }
 
 /**
@@ -1147,32 +1130,52 @@ void setFixture_ADJMegaPar(int dmxStart, int r, int g, int b, int colorProgram, 
  *                              [128-186] = Fade Colors (Fast to Slow)
  *                              [197-255] = Rev Fade Colors (Slow to Fast)
  */
-void setFixture_ADJH2O(int dmxStart, int r, int g, int b, int brightness, int rotationSpeed, int colorMode) {
-    if (!colorMode) {
-        colorMode = 186;    //fade slow
-        if (r>0 && g>0 && b>0) {
-            //  IF Orange-ish, White/Orange
-            if (r>150 && g>90 && b<90) colorMode = 21;
-            //  IF Teal-ish, Green/Blue
-            if (r<120 && g>90 && b>90) colorMode = 65;
-            //  IF Purple-sh, Yellow/Purple
-            if (r>80 && g<135 && b>130) colorMode = 109;
-            //  IF White-ish, Purple/White
-            if (r>127 && g>127 && b>127) colorMode = 127;
-        }
-    }
+void setFixture_ADJH2O(int dmxStart, int r, int g, int b, int brightness, int colorMode) {
+  int rotationSpeed = constrain(map((globalSpeed*100), 0, 200, 80, 122), 80, 122);
+  int fadeSpeed = constrain(map((globalSpeed*100), 0, 200, 196, 210), 196, 210);
 
-    writeDMX(dmxStart, brightness);
-    writeDMX(dmxStart+1, rotationSpeed);
-    writeDMX(dmxStart+2, colorMode);
-}
+  if (!colorMode) {
+      // if (r>0 && g>0 && b>0) {
+      //     //  IF Orange-ish, White/Orange
+      //     if (r>150 && g>90 && b<90) colorMode = 21;
+      //     //  IF Teal-ish, Green/Blue
+      //     if (r<120 && g>90 && b>90) colorMode = 65;
+      //     //  IF Purple-sh, Yellow/Purple
+      //     if (r>80 && g<135 && b>130) colorMode = 109;
+      //     //  IF White-ish, Purple/White
+      //     if (r>127 && g>127 && b>127) colorMode = 127;
+      // }
 
-/**
- *  @param  dmxStart     DMX starting address for the fixture
- *  @param  brightness
- */
-void setFixture_ADJH2O_Brightness(int dmxStart, int brightness) {
-    writeDMX(dmxStart, brightness);
+      colorMode = fadeSpeed;
+
+      // if (r>0 && g>0 && b>0) {
+      //
+      //   // If Whitish set to White
+      //   // if (r>200 && g>200 && b>200 && r==g && g==b) { colorMode = 10; }
+      //
+      //   // If Bluish-Purple set to Purple
+      //   if (b>75 && b-r>50 && b-g>50 && r>g) { colorMode = 120; }
+      //
+      //   // If Amberish set to White/Orange
+      //   else if (r>g && g-b>50 && g>100) { colorMode = 21; }
+      //
+      //   // If Reddish set to Orange
+      //   else if (r>75 && r-g>50 && r-b>50) { colorMode = 32; }
+      //
+      //   // If Greenish set to Green
+      //   else if (g>75 && g-r>50 && g-b>50) { colorMode = 54; }
+      //
+      //   // If Bluish set to Blue
+      //   else if (b>75 && b-r>50 && b-g>50) { colorMode = 76; }
+      //
+      //   // Else fade slow
+      //   else { colorMode = fadeSpeed; }
+      // }
+  }
+
+  writeDMX(dmxStart, brightness);
+  writeDMX(dmxStart+1, rotationSpeed);
+  writeDMX(dmxStart+2, colorMode);
 }
 
 /**
@@ -1202,3 +1205,106 @@ void setFixture_MagicalBall(int dmxStart, int r, int g, int b, int strobeSpeed, 
         writeDMX(dmxStart+5, 0);
     }
 }
+
+/**
+ *  @param  dmxStart     DMX starting address for the fixture
+ *  @param  r                   Amount of red
+ *  @param  g                   Amount of green
+ *  @param  b                   Amount of blue
+ */
+ void setFixture_SWARMFX(int dmxStart, int r, int g, int b, int brightness,
+     int autoMode,
+     int autoModeParam,
+     int washColor,
+     int washStrobe,
+     int derbyColor,
+     int derbyStrobe,
+     int derbySpeed,
+     int smdStrobe,
+     int laserColor,
+     int laserStrobe,
+     int motorLED
+ ) {
+
+      // This comparison really needs to be done in HSV space, ranges of H-- rgb seems to yield weird gaps between main ranges
+      // Even if you do it in HSV, the colors will still jump suddenly
+
+    //  // Set color modes based on RGB input
+    //  // I have RGBUV to work with, cannot combine them in anyway, they are mutually exclusive
+    //  // If Bluish-Purple set to UV
+    //  if (b>75 && b-r>50 && b-g>50 && r>g) {
+    //    washColor = 230;
+    //   //  derbyColor = 75;
+    //  }
+    //  // If Amberish set to Ambers/Yellows/Oranges
+    //  else if (r>g && g-b>50 && g>100) {
+    //    washColor = 77;
+    //   //  derbyColor = 25;
+    //  }
+    //  // If Reddish set to Red
+    //  else if (r>75 && r-g>50 && r-b>50) {
+    //    washColor = 77;
+    //   //  derbyColor = 10;
+    //  }
+    //  // If Greenish set to Green
+    //  else if (g>75 && g-r>50 && g-b>50) {
+    //    washColor = 128;
+    //   //  derbyColor = 15;
+    //  }
+    //  // If Bluish set to Blue
+    //  else if (b>75 && b-r>50 && b-g>50) {
+    //    washColor = 179;
+    //   //  derbyColor = 20;
+    //  }
+
+     // Set speeds
+    //  autoModeParam = (int)(globalSpeed*100);
+     derbySpeed = constrain(map((int)(globalSpeed*100), 0, 200, 70, 4), 4, 70);
+     motorLED = derbySpeed;
+     smdStrobe = smdStrobe + constrain(map((int)(globalSpeed*100), 0, 200, 9, 0), 0, 9);
+     //  washStrobe = constrain(map((int)(globalSpeed*100), 0, 200, 250, 10), 10, 250); //Don't like this either
+     //  derbyStrobe = constrain(map((int)(globalSpeed*100), 0, 200, 5, 200), 5, 200); //I don't like this
+     //  laserStrobe = constrain(map((int)(globalSpeed*100), 0, 200, 5, 254), 5, 254);   // or this
+
+     // If sound reactive mode on, override with sound reactive values
+     if (swarm_sound_reactive) {
+        // autoModeParam = 255;
+        washStrobe = 0;
+        derbyColor = 255;
+        derbyStrobe = 255;
+        smdStrobe = 255;
+        laserStrobe = 255;
+        laserColor = 169;
+     }
+
+     // Blackout all, stop motors
+     if (!brightness) {
+       washColor = 1;
+       derbyColor = 1;
+       laserColor = 1;
+       smdStrobe = 1;
+       derbySpeed = 1;
+       motorLED = 1;
+     }
+
+     // If these subfeatures are toggled off, set to black out
+     if (!swarm_wash) washColor = 1;
+     if (!swarm_derby) derbyColor = 1;
+     if (!swarm_lasers) laserColor = 1;
+     if (!swarm_strobe) smdStrobe = 1;
+
+     // WRITE DMX
+     writeDMX(dmxStart, autoMode);           // ch1
+    //  writeDMX(dmxStart+1, autoMode ? autoModeParam : 0);    // ch2
+     for (int i=2; i<=9; i++) {
+       writeDMX(dmxStart+i, washColor);      // ch3-10
+     }
+     writeDMX(dmxStart+10, washStrobe);      // ch11
+     writeDMX(dmxStart+11, derbyColor);      // ch12
+     writeDMX(dmxStart+12, derbyStrobe);     // ch13
+     writeDMX(dmxStart+13, derbySpeed);      // ch14
+     writeDMX(dmxStart+14, smdStrobe);       // ch15
+     writeDMX(dmxStart+15, laserColor);      // ch16
+     writeDMX(dmxStart+16, laserStrobe);     // ch17
+     writeDMX(dmxStart+17, motorLED);        // ch18
+ }

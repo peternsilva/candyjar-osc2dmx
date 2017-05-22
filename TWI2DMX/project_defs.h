@@ -28,16 +28,13 @@
  *	Define the different lighting areas that fixtures can live in
  */
 #define AREA_GLOBAL 0
+#define NUM_LIGHTING_AREAS 5
 
-#define NUM_LIGHTING_AREAS 7
-
-#define AREA_STANDUP_KIT 1
-#define AREA_DRUM_RISERS 2
-#define AREA_DRUMS_OVERHEAD 3
-#define AREA_HALFWALL 4
+#define AREA_SWARM 1
+#define AREA_WATER 2
+#define AREA_DRUM_RISERS 3
+#define AREA_DRUMS_OVERHEAD 4
 #define AREA_DJ_BOOTH 5
-#define AREA_AUX1 6
-#define AREA_AUX2 7
 
 /**
  *	Define the different parameters that are available to be controlled per lighting area
@@ -46,7 +43,6 @@
 #define AREA_PARAM_HUE 0
 #define AREA_PARAM_SATURATION 1
 #define AREA_PARAM_BRIGHTNESS 2
-
 
 /**
  *	Define the fixture topology of the project
@@ -58,8 +54,8 @@
 #define NUM_FIXTURES 15
 unsigned int fixtures[NUM_FIXTURES][3] =
 {
-    { AREA_STANDUP_KIT, FIXTURE_SWARM_FX_18CH, 1 },
-    { AREA_STANDUP_KIT, FIXTURE_ADJ_H2O_3CH, 19 },
+    { AREA_WATER, FIXTURE_ADJ_H2O_3CH, 1 },
+    { AREA_SWARM, FIXTURE_SWARM_FX_18CH, 4 },
 
     { AREA_DRUM_RISERS, FIXTURE_RGB_STRIP_3CH, 22 },
     { AREA_DRUM_RISERS, FIXTURE_RGB_STRIP_3CH, 25 },
@@ -68,10 +64,9 @@ unsigned int fixtures[NUM_FIXTURES][3] =
     { AREA_DRUMS_OVERHEAD, FIXTURE_ADJ_38B_7CH, 31 },
     { AREA_DRUMS_OVERHEAD, FIXTURE_ADJ_38B_7CH, 38 },
     { AREA_DRUMS_OVERHEAD, FIXTURE_ADJ_38B_7CH, 45 },
-
-    { AREA_HALFWALL, FIXTURE_ADJ_38B_7CH, 52 },
-    { AREA_HALFWALL, FIXTURE_ADJ_38B_7CH, 59 },
-    { AREA_HALFWALL, FIXTURE_ADJ_38B_7CH, 66 },
+    { AREA_DRUMS_OVERHEAD, FIXTURE_ADJ_38B_7CH, 52 },
+    { AREA_DRUMS_OVERHEAD, FIXTURE_ADJ_38B_7CH, 59 },
+    { AREA_DRUMS_OVERHEAD, FIXTURE_ADJ_38B_7CH, 66 },
 
     { AREA_DJ_BOOTH, FIXTURE_ADJ_MEGA_PAR_7CH, 73 },
 

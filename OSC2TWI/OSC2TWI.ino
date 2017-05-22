@@ -16,7 +16,7 @@ Z_OSCMessage *rcvMes;
 
 // Variable to set value for Digital pin 3 to pwm. This gets written via i2c. Do no more than 16 bytes if possible
 // also set starting values
-byte i2cArray[16] = {AREA_GLOBAL,255,255,255,127,1,0,0,0,0,0,0,0,0,0,0};
+byte i2cArray[16] = {AREA_GLOBAL,255,255,255,127,1,0,0,0,255,255,255,255,0,0,0};
 
 /**
  *  Configure ethernet, wire, serial port etc.
@@ -24,11 +24,11 @@ byte i2cArray[16] = {AREA_GLOBAL,255,255,255,127,1,0,0,0,0,0,0,0,0,0,0};
 void setup() {
     // ETHERNET SETUP
     byte myMac[] = {   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };    //  SET MAC ADDRESS
-    byte myIp[]  = { 192, 168, 11, 99 };                            //  SET IP ADDRESS
+    byte myIp[]  = { 192, 168, 11, 99 };                        //  SET IP ADDRESS
     int  serverPort  = 8000;                                    //  SET OSC SERVER PORT
 
     //Pins 4,10 are used for the Ethernet shield . Adding pins 8 and 9 for use made this code buggy.
-    Ethernet.begin(myMac ,myIp);
+    Ethernet.begin(myMac, myIp);
     server.sockOpen(serverPort);
 
     // i2c SETUP
@@ -52,19 +52,21 @@ void loop() {
       if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/area/1/1" ) )
       { i2cArray[0] =  AREA_GLOBAL; }
       if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/area/1/2" ) )
-      { i2cArray[0] =  AREA_STANDUP_KIT; }
+      { i2cArray[0] =  AREA_SWARM; }
       if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/area/1/3" ) )
-      { i2cArray[0] =  AREA_DRUM_RISERS; }
+      { i2cArray[0] =  AREA_WATER; }
       if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/area/1/4" ) )
-      { i2cArray[0] =  AREA_DRUMS_OVERHEAD; }
+      { i2cArray[0] =  AREA_DRUM_RISERS; }
       if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/area/1/5" ) )
-      { i2cArray[0] =  AREA_HALFWALL; }
+      { i2cArray[0] =  AREA_DRUMS_OVERHEAD; }
       if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/area/1/6" ) )
       { i2cArray[0] =  AREA_DJ_BOOTH; }
       if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/area/1/7" ) )
-      { i2cArray[0] =  AREA_AUX1; }
+      { i2cArray[0] =  AREA_DJ_BOOTH; }
       if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/area/1/8" ) )
-      { i2cArray[0] =  AREA_AUX2; }
+      { i2cArray[0] =  AREA_DJ_BOOTH; }
+      if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/area/1/9" ) )
+      { i2cArray[0] =  AREA_DJ_BOOTH; }
 
       //  Area Parameters
       if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/hue" ) )
@@ -119,6 +121,20 @@ void loop() {
       //system off toggle
       if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/system_off" ) )
       { i2cArray[8] =  (rcvMes->getFloat(0)*255.0); }
+
+      // Swarm Mode Toggle
+      if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/swarm_mode/1/1" ) )
+      { i2cArray[9] =  (int)(rcvMes->getFloat(0)*255.0); }
+      if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/swarm_mode/1/2" ) )
+      { i2cArray[10] =  (int)(rcvMes->getFloat(0)*255.0); }
+      if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/swarm_mode/1/3" ) )
+      { i2cArray[11] =  (int)(rcvMes->getFloat(0)*255.0); }
+      if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/swarm_mode/1/4" ) )
+      { i2cArray[12] =  (int)(rcvMes->getFloat(0)*255.0); }
+
+      // Swarm Sound Reactive Toggle
+      if( !strcmp( rcvMes->getZ_OSCAddress() ,  "/1/swarm_sound" ) )
+      { i2cArray[13] =  (int)(rcvMes->getFloat(0)*255.0); }
 
   }
 }

@@ -1,5 +1,8 @@
 # CANDY JAR HOURS
-  - 6:30p-10:30p 5/15
+  - 6:30p - 10:30p 5/15
+  - 3hrs coding 5/19
+  - 11:30 - 11:30 5/20
+  - 12:30 - 
 
 # Swarm 18ch DMX Mode
 
